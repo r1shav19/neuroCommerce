@@ -1,7 +1,16 @@
 # Environment secrets — never commit
 .env
 
+# Python virtual environments (from old projects)
+backend/venv/
+venv/
+__pycache__/
+*.pyc
+
 # Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
 node_modules/
 client/node_modules/
 server/node_modules/
