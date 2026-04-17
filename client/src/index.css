@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #0f172a; /* slate-900 */
+    --foreground: #f8fafc; /* slate-50 */
+    --card: #1e293b; /* slate-800 */
+    --card-foreground: #f8fafc;
+    --primary: #3b82f6; /* blue-500 */
+    --primary-foreground: #ffffff;
+    --destructive: #ef4444; /* red-500 */
+    --destructive-foreground: #ffffff;
+    --warning: #eab308; /* yellow-500 */
+    --success: #22c55e; /* green-500 */
+  }
+}
+
+body {
+  @apply bg-slate-900 text-slate-50 antialiased h-screen overflow-hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+}
