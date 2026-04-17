@@ -3,16 +3,25 @@ import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
-import { randomBytes, createHmac } from 'crypto';
+import path from 'path';
+import { randomBytes } from 'crypto';
 
 dotenv.config({ path: '../.env' });
 
-const PORT = process.env.SERVER_PORT || 3001;
+// Cloud Run uses PORT env var; fallback to 3001 for local dev
+const PORT = process.env.PORT || process.env.SERVER_PORT || 3001;
 const HMAC_SECRET = process.env.VITE_HMAC_SECRET || 'fallback_secret';
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// ── Serve built React app in production ──────────────────────────────────────
+const CLIENT_DIST = path.join(__dirname, '..', 'client', 'dist');
+if (IS_PROD) {
+  app.use(express.static(CLIENT_DIST));
+}
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
@@ -32,7 +41,6 @@ function broadcast(msgObj: object) {
   });
 }
 
-// Start live simulation
 startSimulationLoop(broadcast);
 
 wss.on('connection', ws => {
@@ -44,7 +52,6 @@ wss.on('connection', ws => {
     try {
       const data = JSON.parse(message.toString());
 
-      // Optional HMAC check for signed messages from store nodes
       if (data.signature && data.storeId && data.timestamp) {
         const result = handleSecurity(data.storeId, data.timestamp, data.payload, data.signature, HMAC_SECRET);
         if (result === 'compromised') {
@@ -66,7 +73,7 @@ wss.on('connection', ws => {
             broadcast(result);
             logAuditEntry({ id: Date.now().toString(), timestamp: Date.now(), eventType: 'bid', payload: result, hmacSignature: 'server' });
           });
-          broadcast({ type: 'WANT_BID', ...data.payload });
+          broadcast({ type: 'WANT_BID', ...(data.payload || data) });
           break;
         }
         case 'OFFER_BID': {
@@ -108,4 +115,11 @@ wss.on('connection', ws => {
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', clients: clients.size }));
 
-server.listen(PORT, () => console.log(`[Server] Running on port ${PORT}`));
+// Catch-all: serve React app for any non-API route in production
+if (IS_PROD) {
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+  });
+}
+
+server.listen(PORT, () => console.log(`[Server] Running on port ${PORT} (${IS_PROD ? 'production' : 'development'})`));

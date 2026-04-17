@@ -2,7 +2,11 @@ import { useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
 import { generateSignature } from '../services/hmacService';
 
-const WS_URL = 'ws://127.0.0.1:3001';
+// In dev: connect to local Node server on port 3001
+// In production (Cloud Run): WebSocket is on the same host as the page
+const WS_URL = import.meta.env.DEV
+  ? 'ws://127.0.0.1:3001'
+  : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
 
 export function useWebSocket() {
   const ws = useRef<WebSocket | null>(null);
